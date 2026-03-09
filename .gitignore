@@ -1,0 +1,24 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+.vite/
+*.log
+*.tsbuildinfo
+
+# 本地缓存数据（运行时生成）
+apps/api/data/*.json
+apps/data/
+
+# TypeScript 编译产物（仅提交 .ts 源码）
+apps/web/src/*.js
+apps/web/src/*.d.ts
+apps/api/tests/*.js
+
+# Claude 工作文件
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

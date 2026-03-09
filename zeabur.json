@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "build": {
+    "type": "node",
+    "build_command": "npm run build",
+    "output_dir": "apps/api/dist"
+  },
+  "start": {
+    "command": "node apps/api/dist/server.js"
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "8080"
+  }
+}
