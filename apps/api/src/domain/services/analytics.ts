@@ -533,6 +533,11 @@ export const buildContext = async (): Promise<AnalyticsContext> => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : '未知错误';
+    const isAbort = error instanceof Error && error.name === 'AbortError';
+    const hint = isAbort
+      ? '请求超时。如果服务器部署在海外（日本/新加坡等），可能无法访问国内金融数据 API。'
+      : '数据源请求失败。可能原因：服务器不在中国大陆、API 限流、网络不可达。';
+    console.error(`[buildContext] 真实数据拉取失败: ${message}`);
     return {
       stocks: fallbackStocks,
       etfs: fallbackEtfs,
@@ -540,7 +545,7 @@ export const buildContext = async (): Promise<AnalyticsContext> => {
       realtimeQuotes: [],
       dataMode: 'fallback',
       dataSources: ['sample-data'],
-      warnings: [`真实数据拉取失败，已回退到样例数据：${message}`]
+      warnings: [`${hint}（${message}）`, '当前使用内置样例数据进行展示。']
     };
   }
 };

@@ -73,8 +73,22 @@ const parseScriptVariable = <T>(script: string, variableName: string): T | null 
   return null;
 };
 
+// 请求超时时间（毫秒），海外服务器访问中国金融 API 时可能较慢
+const FETCH_TIMEOUT_MS = 15_000;
+
+const fetchWithTimeout = async (url: string, init?: RequestInit): Promise<Response> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const fetchText = async (url: string): Promise<string> => {
-  const response = await fetch(url, { headers: DEFAULT_HEADERS });
+  const response = await fetchWithTimeout(url, { headers: DEFAULT_HEADERS });
   if (!response.ok) {
     throw new Error(`请求失败: ${response.status} ${url}`);
   }
@@ -82,7 +96,7 @@ const fetchText = async (url: string): Promise<string> => {
 };
 
 const fetchJson = async <T>(url: string): Promise<T> => {
-  const response = await fetch(url, { headers: DEFAULT_HEADERS });
+  const response = await fetchWithTimeout(url, { headers: DEFAULT_HEADERS });
   if (!response.ok) {
     throw new Error(`请求失败: ${response.status} ${url}`);
   }

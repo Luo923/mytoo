@@ -117,7 +117,12 @@ export function App() {
 
       {loading && <section className="banner info">正在加载看板数据…</section>}
       {error && <section className="banner error">后端加载失败：{error}</section>}
-      {snapshot.warnings?.map((warning) => (
+      {snapshot.dataMode === 'fallback' && !loading && !error && (
+        <section className="banner info">
+          当前使用回退样例数据。如需真实行情，请将服务部署在可访问国内金融 API 的网络环境中。
+        </section>
+      )}
+      {snapshot.warnings?.filter(w => !w.includes('样例数据')).map((warning) => (
         <section key={warning} className="banner info">{warning}</section>
       ))}
 
