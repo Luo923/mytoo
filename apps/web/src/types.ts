@@ -151,3 +151,55 @@ export type FundSearchItem = {
   navDate: string;
   isBuyable: boolean;
 };
+
+// ─── 今日推荐评分类型 ───────────────────────────────────────────────────────
+export type ScoredRecommendation = {
+  code: string;
+  name: string;
+  score: number;
+  rating: '强烈推荐' | '推荐' | '观望';
+  action: '可加仓' | '可建仓' | '持有观察' | '暂不操作';
+  breakdown: {
+    shortMomentum: number;
+    midTrend: number;
+    longReturn: number;
+    consistency: number;
+  };
+  returns: {
+    daily: number;
+    week: number;
+    month: number;
+    threeMonth: number;
+    sixMonth: number;
+    year: number;
+    ytd: number;
+  };
+  reasons: string[];
+};
+
+export type TopPicksResponse = {
+  generatedAt: string;
+  scannedCount: number;
+  recommendations: ScoredRecommendation[];
+};
+
+// ─── 持仓管理类型 ───────────────────────────────────────────────────────────
+export type Holding = {
+  code: string;
+  name: string;
+  shares: number;
+  costPrice: number;
+  addedAt: string;
+};
+
+export type PortfolioResponse = {
+  holdings: Holding[];
+  count: number;
+};
+
+export type PortfolioAnalysis = {
+  holdings: Holding[];
+  scores: FundScore[];
+  navEstimates: NavEstimate[];
+  message?: string;
+};

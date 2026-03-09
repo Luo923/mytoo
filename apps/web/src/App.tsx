@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, BarChart, Bar } from 'recharts';
-import type { DashboardSnapshot, FundRankItem, FundRankResult, FundSearchItem } from './types';
+import type { DashboardSnapshot, FundRankItem, FundRankResult, FundSearchItem, TopPicksResponse, Holding, PortfolioAnalysis, ScoredRecommendation } from './types';
 
 // 生产环境同域部署时使用相对路径，开发环境指向本地后端
 const API_BASE = import.meta.env.DEV ? 'http://localhost:3000/api' : '/api';
@@ -21,7 +21,321 @@ const buildFallbackData = (): DashboardSnapshot => {
 
 const percent = (value: number) => `${(value * 100).toFixed(2)}%`;
 
-type Tab = 'dashboard' | 'ranking' | 'search';
+type Tab = 'top-picks' | 'portfolio' | 'dashboard' | 'ranking' | 'search';
+
+// ─── 今日推荐 Top 10 组件 ────────────────────────────────────────────────────
+function TopPicksPanel() {
+  const [data, setData] = useState<TopPicksResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTopPicks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/funds/top-picks`);
+      if (!res.ok) throw new Error(`请求失败：${res.status}`);
+      setData(await res.json() as TopPicksResponse);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加载失败');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void loadTopPicks(); }, [loadTopPicks]);
+
+  const ratingClass = (r: ScoredRecommendation) => {
+    if (r.rating === '强烈推荐') return 'rating-strong';
+    if (r.rating === '推荐') return 'rating-normal';
+    return 'rating-watch';
+  };
+
+  const actionClass = (r: ScoredRecommendation) => {
+    if (r.action === '可加仓' || r.action === '可建仓') return 'action-buy';
+    if (r.action === '持有观察') return 'action-hold';
+    return 'action-sell';
+  };
+
+  return (
+    <section className="content-grid">
+      <article className="panel wide">
+        <div className="panel-header">
+          <h2>今日量化策略推荐 Top 10</h2>
+          <span>
+            {data ? `扫描 ${data.scannedCount} 只基金 · ${new Date(data.generatedAt).toLocaleString('zh-CN')}` : '加载中…'}
+            <button className="btn-small" style={{ marginLeft: 12 }} onClick={loadTopPicks} disabled={loading}>
+              {loading ? '刷新中…' : '刷新'}
+            </button>
+          </span>
+        </div>
+        {loading && <section className="banner info">正在扫描全市场基金（股票型+混合型+指数型），请稍候…</section>}
+        {error && <section className="banner error">{error}</section>}
+        {data && data.recommendations.length === 0 && !loading && (
+          <section className="banner info">当前暂无符合策略条件的推荐基金</section>
+        )}
+        {data && data.recommendations.length > 0 && (
+          <>
+            <div className="top-picks-cards">
+              {data.recommendations.slice(0, 3).map((r, idx) => (
+                <div key={r.code} className={`pick-card pick-card-${idx + 1}`}>
+                  <div className="pick-rank">#{idx + 1}</div>
+                  <div className="pick-info">
+                    <div className="pick-name">{r.name}</div>
+                    <div className="pick-code">{r.code}</div>
+                  </div>
+                  <div className="pick-score">{r.score.toFixed(1)}<small>分</small></div>
+                  <div className="pick-badges">
+                    <span className={`rating-badge ${ratingClass(r)}`}>{r.rating}</span>
+                    <span className={`action-badge ${actionClass(r)}`}>{r.action}</span>
+                  </div>
+                  <div className="pick-returns">
+                    <span className={r.returns.daily >= 0 ? 'text-up' : 'text-down'}>日 {r.returns.daily.toFixed(2)}%</span>
+                    <span className={r.returns.month >= 0 ? 'text-up' : 'text-down'}>月 {r.returns.month.toFixed(2)}%</span>
+                    <span className={r.returns.threeMonth >= 0 ? 'text-up' : 'text-down'}>3月 {r.returns.threeMonth.toFixed(2)}%</span>
+                  </div>
+                  <div className="pick-reasons">
+                    {r.reasons.map(reason => <span key={reason} className="reason-tag">{reason}</span>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="table-wrapper" style={{ marginTop: 20 }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>排名</th><th>代码</th><th>名称</th><th>综合评分</th>
+                    <th>评级</th><th>建议</th>
+                    <th>日涨幅</th><th>近1月</th><th>近3月</th><th>近6月</th><th>近1年</th>
+                    <th>推荐理由</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recommendations.map((r, idx) => (
+                    <tr key={r.code}>
+                      <td><strong>{idx + 1}</strong></td>
+                      <td>{r.code}</td>
+                      <td className="fund-name-cell">{r.name}</td>
+                      <td><strong className="score-highlight">{r.score.toFixed(1)}</strong></td>
+                      <td><span className={`rating-badge ${ratingClass(r)}`}>{r.rating}</span></td>
+                      <td><span className={`action-badge ${actionClass(r)}`}>{r.action}</span></td>
+                      <td className={r.returns.daily >= 0 ? 'text-up' : 'text-down'}>{r.returns.daily.toFixed(2)}%</td>
+                      <td className={r.returns.month >= 0 ? 'text-up' : 'text-down'}>{r.returns.month.toFixed(2)}%</td>
+                      <td className={r.returns.threeMonth >= 0 ? 'text-up' : 'text-down'}>{r.returns.threeMonth.toFixed(2)}%</td>
+                      <td className={r.returns.sixMonth >= 0 ? 'text-up' : 'text-down'}>{r.returns.sixMonth.toFixed(2)}%</td>
+                      <td className={r.returns.year >= 0 ? 'text-up' : 'text-down'}>{r.returns.year.toFixed(2)}%</td>
+                      <td className="reasons-cell">{r.reasons.join('；')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="scoring-legend" style={{ marginTop: 16 }}>
+              <h3>评分维度说明</h3>
+              <div className="legend-items">
+                <div><span className="legend-dot" style={{background:'#4f46e5'}} />短期动量（20%）：日+周+月收益率</div>
+                <div><span className="legend-dot" style={{background:'#0ea5e9'}} />中期趋势（30%）：3月+6月收益率</div>
+                <div><span className="legend-dot" style={{background:'#22c55e'}} />长期收益（30%）：年收益率+今年来</div>
+                <div><span className="legend-dot" style={{background:'#f97316'}} />趋势一致性（20%）：各周期方向一致性</div>
+              </div>
+            </div>
+          </>
+        )}
+      </article>
+    </section>
+  );
+}
+
+// ─── 我的持仓组件 ────────────────────────────────────────────────────────────
+function PortfolioPanel() {
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [analysis, setAnalysis] = useState<PortfolioAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [addCode, setAddCode] = useState('');
+  const [addShares, setAddShares] = useState('');
+  const [addCost, setAddCost] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+
+  const showMsg = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(null), 3000); };
+
+  const loadHoldings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/portfolio`);
+      if (res.ok) {
+        const data = await res.json() as { holdings: Holding[] };
+        setHoldings(data.holdings);
+      }
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void loadHoldings(); }, [loadHoldings]);
+
+  const handleAdd = async () => {
+    const code = addCode.trim();
+    if (!code || !/^\d{6}$/.test(code)) {
+      showMsg('请输入有效的6位基金代码');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/portfolio/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          shares: Number(addShares) || 0,
+          costPrice: Number(addCost) || 0,
+        })
+      });
+      const data = await res.json() as { message?: string; error?: string };
+      showMsg(data.message ?? data.error ?? '操作完成');
+      if (res.ok) {
+        setAddCode('');
+        setAddShares('');
+        setAddCost('');
+        void loadHoldings();
+      }
+    } catch { showMsg('添加失败'); }
+  };
+
+  const handleRemove = async (code: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/portfolio/${code}`, { method: 'DELETE' });
+      const data = await res.json() as { message?: string };
+      showMsg(data.message ?? '已移除');
+      if (res.ok) void loadHoldings();
+    } catch { showMsg('移除失败'); }
+  };
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/portfolio/analysis`);
+      if (res.ok) setAnalysis(await res.json() as PortfolioAnalysis);
+      else showMsg('分析失败');
+    } catch { showMsg('分析请求失败'); }
+    finally { setAnalyzing(false); }
+  };
+
+  return (
+    <section className="content-grid">
+      <article className="panel wide">
+        <div className="panel-header">
+          <h2>我的持仓</h2>
+          <span>通过基金代码添加持仓，获取量化策略分析</span>
+        </div>
+
+        {message && <section className="banner info">{message}</section>}
+
+        {/* 添加持仓表单 */}
+        <div className="portfolio-add-form">
+          <input
+            type="text" value={addCode} onChange={e => setAddCode(e.target.value)}
+            placeholder="基金代码（6位）" maxLength={6}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          />
+          <input
+            type="number" value={addShares} onChange={e => setAddShares(e.target.value)}
+            placeholder="持有份额（选填）" min={0} step={0.01}
+          />
+          <input
+            type="number" value={addCost} onChange={e => setAddCost(e.target.value)}
+            placeholder="成本价（选填）" min={0} step={0.0001}
+          />
+          <button onClick={handleAdd}>+ 添加持仓</button>
+        </div>
+
+        {/* 持仓列表 */}
+        {loading ? (
+          <section className="banner info">加载持仓中…</section>
+        ) : holdings.length === 0 ? (
+          <section className="banner info">暂无持仓，请通过上方输入框添加基金代码</section>
+        ) : (
+          <>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>代码</th><th>名称</th><th>持有份额</th><th>成本价</th><th>添加时间</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  {holdings.map(h => (
+                    <tr key={h.code}>
+                      <td>{h.code}</td>
+                      <td className="fund-name-cell">{h.name}</td>
+                      <td>{h.shares > 0 ? h.shares.toFixed(2) : '--'}</td>
+                      <td>{h.costPrice > 0 ? h.costPrice.toFixed(4) : '--'}</td>
+                      <td>{new Date(h.addedAt).toLocaleString('zh-CN')}</td>
+                      <td><button className="btn-small btn-danger" onClick={() => handleRemove(h.code)}>移除</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <button className="analyze-btn" onClick={handleAnalyze} disabled={analyzing}>
+                {analyzing ? '分析中（获取实时数据）…' : `对 ${holdings.length} 只持仓基金进行策略分析`}
+              </button>
+            </div>
+          </>
+        )}
+      </article>
+
+      {/* 持仓分析结果 */}
+      {analysis && analysis.scores.length > 0 && (
+        <>
+          <article className="panel wide">
+            <div className="panel-header">
+              <h2>持仓策略评分</h2>
+              <span>基于动量/回撤/波动/持仓共振等多因子深度评分</span>
+            </div>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>基金</th><th>总分</th><th>动量</th><th>回撤</th><th>波动</th><th>基准</th><th>共振</th><th>评语</th></tr>
+                </thead>
+                <tbody>
+                  {analysis.scores.map(s => {
+                    const h = analysis.holdings.find(x => x.code === s.fundCode);
+                    return (
+                      <tr key={s.fundCode}>
+                        <td className="fund-name-cell"><strong>{s.fundCode}</strong><small>{h?.name ?? ''}</small></td>
+                        <td><strong className="score-highlight">{s.totalScore.toFixed(2)}</strong></td>
+                        <td>{s.breakdown.momentum.toFixed(1)}</td>
+                        <td>{s.breakdown.drawdownControl.toFixed(1)}</td>
+                        <td>{s.breakdown.volatilityControl.toFixed(1)}</td>
+                        <td>{s.breakdown.benchmarkStrength.toFixed(1)}</td>
+                        <td>{s.breakdown.holdingResonance.toFixed(1)}</td>
+                        <td className="reasons-cell">{s.reasoning.slice(0, 2).join('；')}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article className="panel wide">
+            <div className="panel-header">
+              <h2>持仓净值变化估算</h2>
+              <span>基于股票持仓代理 + ETF/基准修正</span>
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={analysis.navEstimates}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#23304b" />
+                <XAxis dataKey="fundCode" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" tickFormatter={percent} />
+                <Tooltip formatter={(value: number) => percent(value)} />
+                <Bar dataKey="estimatedChangeRate" fill="#22c55e" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </article>
+        </>
+      )}
+    </section>
+  );
+}
 
 // ─── 基金排行组件 ─────────────────────────────────────────────────────────────
 function FundRankingPanel({ onAddFund }: { onAddFund: (code: string) => void }) {
@@ -200,7 +514,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('top-picks');
   const [addMessage, setAddMessage] = useState<string | null>(null);
 
   const handleRefresh = () => setRefreshKey(prev => prev + 1);
@@ -266,7 +580,7 @@ export function App() {
           <p className="eyebrow">基金量化研究与策略辅助平台</p>
           <h1>从评分、估值到仓位建议的一体化看板</h1>
           <p className="subtitle">
-            支持场外基金排行浏览、自选基金深度分析、策略参数搜索和当日研究指示。
+            每日自动扫描全市场基金，量化策略筛选 Top 10 加仓推荐。支持持仓管理、深度分析、排行浏览和当日研究指示。
           </p>
         </div>
         <div className="hero-meta">
@@ -308,10 +622,18 @@ export function App() {
 
       {/* 导航标签 */}
       <nav className="tab-bar">
+        <button className={activeTab === 'top-picks' ? 'tab active' : 'tab'} onClick={() => setActiveTab('top-picks')}>今日推荐</button>
+        <button className={activeTab === 'portfolio' ? 'tab active' : 'tab'} onClick={() => setActiveTab('portfolio')}>我的持仓</button>
         <button className={activeTab === 'dashboard' ? 'tab active' : 'tab'} onClick={() => setActiveTab('dashboard')}>策略看板</button>
         <button className={activeTab === 'ranking' ? 'tab active' : 'tab'} onClick={() => setActiveTab('ranking')}>基金排行</button>
         <button className={activeTab === 'search' ? 'tab active' : 'tab'} onClick={() => setActiveTab('search')}>搜索添加</button>
       </nav>
+
+      {/* ─── 今日推荐 Tab ──────────────────────────────────────────────────── */}
+      {activeTab === 'top-picks' && <TopPicksPanel />}
+
+      {/* ─── 我的持仓 Tab ──────────────────────────────────────────────────── */}
+      {activeTab === 'portfolio' && <PortfolioPanel />}
 
       {/* ─── 策略看板 Tab ──────────────────────────────────────────────────── */}
       {activeTab === 'dashboard' && (
