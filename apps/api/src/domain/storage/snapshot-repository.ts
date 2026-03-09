@@ -1,5 +1,5 @@
 import type { DashboardSnapshot } from '../types.js';
-import { readCache, writeCache } from './file-cache.js';
+import { readCache, writeCache, deleteCache } from './file-cache.js';
 
 const SNAPSHOT_CACHE_KEY = 'dashboard-live-snapshot';
 const SNAPSHOT_TTL_MS = 15 * 60 * 1000;
@@ -10,4 +10,9 @@ export const loadLatestSnapshot = async (): Promise<DashboardSnapshot | null> =>
 
 export const saveLatestSnapshot = async (snapshot: DashboardSnapshot): Promise<void> => {
   await writeCache(SNAPSHOT_CACHE_KEY, snapshot);
+};
+
+/** 清除快照缓存，使下次请求重新分析 */
+export const clearSnapshotCache = (): void => {
+  deleteCache(SNAPSHOT_CACHE_KEY);
 };

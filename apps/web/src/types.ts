@@ -114,3 +114,40 @@ export type DashboardSnapshot = {
   strategyResearch?: StrategyResearchResult;
   dailyInstructions?: DailyInstruction[];
 };
+
+// ─── 基金排行 API 类型 ──────────────────────────────────────────────────────
+export type FundRankItem = {
+  code: string;
+  name: string;
+  nav: number;
+  navDate: string;
+  dailyReturn: number;
+  weekReturn: number;
+  monthReturn: number;
+  threeMonthReturn: number;
+  sixMonthReturn: number;
+  yearReturn: number;
+  ytdReturn: number;
+  sinceInception: number;
+  establishDate: string;
+};
+
+export type FundRankResult = {
+  items: FundRankItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+// ─── 基金搜索 API 类型 ──────────────────────────────────────────────────────
+export type FundSearchItem = {
+  code: string;
+  name: string;
+  type: string;
+  typeDesc: string;
+  company: string;
+  manager: string;
+  nav: number;
+  navDate: string;
+  isBuyable: boolean;
+};

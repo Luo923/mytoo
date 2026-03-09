@@ -289,6 +289,222 @@ tbody tr:hover {
   }
 }
 
+/* ─── Tab 导航栏 ─────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: 10px 22px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  border-radius: 10px 10px 0 0;
+}
+
+.tab:hover {
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.tab.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.06);
+}
+
+/* ─── 筛选栏 ─────────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.filter-bar select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+/* ─── 搜索栏 ─────────────────────────────────────────────────────────────── */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.search-bar input::placeholder {
+  color: #64748b;
+}
+
+.search-bar button {
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: 1px solid rgba(79, 70, 229, 0.55);
+  background: rgba(79, 70, 229, 0.22);
+  color: #a5b4fc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-bar button:hover:not(:disabled) {
+  background: rgba(79, 70, 229, 0.4);
+  color: #e0e7ff;
+}
+
+.search-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── 分页 ───────────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.pagination button {
+  padding: 6px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.9);
+  color: #e2e8f0;
+}
+
+.pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ─── 小按钮 ─────────────────────────────────────────────────────────────── */
+.btn-small {
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.btn-small:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.28);
+}
+
+.btn-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-small.btn-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.btn-small.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.28);
+}
+
+/* ─── 涨跌颜色 ──────────────────────────────────────────────────────────── */
+.text-up {
+  color: #22c55e;
+}
+
+.text-down {
+  color: #ef4444;
+}
+
+/* ─── 基金名称列 ─────────────────────────────────────────────────────────── */
+.fund-name-cell {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fund-name-cell small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ─── 动作标签 ───────────────────────────────────────────────────────────── */
+.action-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.action-buy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
+.action-hold {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fde68a;
+}
+
+.action-sell {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
 @media (max-width: 900px) {
   .page-shell {
     padding: 18px;
@@ -301,5 +517,9 @@ tbody tr:hover {
 
   .hero-card h1 {
     font-size: 30px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
   }
 }

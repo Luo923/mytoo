@@ -1,8 +1,10 @@
-import { defaultEtfUniverse, defaultFundUniverse, defaultStockUniverse } from '../config/fund-universe.js';
+import { defaultEtfUniverse, defaultStockUniverse } from '../config/fund-universe.js';
+import { fundUniverseManager, type FundEntry } from '../config/fund-universe-manager.js';
 import { EastmoneyClient, type EastmoneyFundEstimate } from './eastmoney-client.js';
 import type { Etf, Fund, FundHolding, FundNavPoint, MarketDailyBar, RealtimeQuote, Stock } from '../types.js';
 
 const eastmoneyClient = new EastmoneyClient();
+export { eastmoneyClient };
 
 // ─── 并发速率控制（修复问题10：避免对公开接口发起无限制并发请求） ─────────────
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -185,9 +187,10 @@ export const fetchEtfs = async (): Promise<Etf[]> => {
 };
 
 export const fetchFunds = async (): Promise<Fund[]> => {
-  // 基金脚本文件较大，每批 1 个串行拉取，避免并发触发限流（修复问题10）
+  const universe = fundUniverseManager.getAll();
+  // 基金脚本文件较大，每批 1 个串行拉取，避免并发触发限流
   const results = await batchedMap(
-    defaultFundUniverse,
+    universe,
     async (item) => {
       const script = await eastmoneyClient.getFundScript(item.code);
       const navHistory = parseFundNavHistory(script, eastmoneyClient).slice(-240);
@@ -216,6 +219,31 @@ export const fetchFunds = async (): Promise<Fund[]> => {
 
 export const fetchFundEstimate = async (code: string): Promise<EastmoneyFundEstimate> => {
   return eastmoneyClient.getFundEstimate(code);
+};
+
+/** 单独获取一只基金的完整数据（用于添加基金时验证） */
+export const fetchSingleFund = async (entry: FundEntry): Promise<Fund | null> => {
+  try {
+    const script = await eastmoneyClient.getFundScript(entry.code);
+    const navHistory = parseFundNavHistory(script, eastmoneyClient).slice(-240);
+    if (navHistory.length < 20) return null;
+    const holdings = parseFundHoldings(script, eastmoneyClient);
+    const stockPosition = parseStockPosition(script, eastmoneyClient);
+    return {
+      code: entry.code,
+      name: parseFundName(script, eastmoneyClient),
+      category: entry.category,
+      benchmark: entry.benchmark,
+      benchmarkEtfSymbol: entry.benchmarkEtfSymbol,
+      riskLevel: entry.riskLevel,
+      source: 'Eastmoney',
+      stockPosition,
+      holdings,
+      navHistory
+    } satisfies Fund;
+  } catch {
+    return null;
+  }
 };
 
 export const fetchRealtimeQuotes = async (secids: string[]): Promise<RealtimeQuote[]> => {

@@ -14,7 +14,25 @@ const ensureDir = async (filePath: string) => {
   await mkdir(path.dirname(filePath), { recursive: true });
 };
 
+/** 手动标记缓存过期的键集合 */
+const expiredKeys = new Set<string>();
+
+/** 同步标记缓存为过期 */
+export const deleteCache = (cacheKey: string): void => {
+  expiredKeys.add(cacheKey);
+};
+
+/** 检查缓存是否被手动标记为过期（检查后自动清除标记） */
+const isCacheExpired = (cacheKey: string): boolean => {
+  if (expiredKeys.has(cacheKey)) {
+    expiredKeys.delete(cacheKey);
+    return true;
+  }
+  return false;
+};
+
 export const readCache = async <T>(cacheKey: string, maxAgeMs: number): Promise<T | null> => {
+  if (isCacheExpired(cacheKey)) return null;
   const filePath = path.join(dataRoot, `${cacheKey}.json`);
   try {
     const raw = await readFile(filePath, 'utf8');
